@@ -1,0 +1,67 @@
+name: Build job
+
+on:
+  # Every Saturday at 16:00 UTC-5
+  schedule:
+    - cron: '0 21 * * 6'
+  # Manual triggers
+  workflow_dispatch:
+    inputs:
+      git-ref:
+        description: Git Ref (Optional)
+        required: false
+
+jobs:
+  build-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repository (Latest)
+        uses: actions/checkout@v2
+        with:
+          repository: 'inorichi/tachiyomi'
+          fetch-depth: 0
+        if: github.event.inputs.git-ref == ''
+      - name: Clone Repository (Custom Ref)
+        uses: actions/checkout@v2
+        if: github.event.inputs.git-ref != ''
+        with:
+          repository: 'inorichi/tachiyomi'
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.git-ref }}
+
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Get NDK
+        run: sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;21.0.6113669" &> /dev/null
+
+      - name: Set up keystore
+        run: mkdir -p ~/.android/ && echo "${{ secrets.DEBUG_KEYSTORE }}" | base64 --decode > ~/.android/debug.keystore
+      - name: Build APK
+        run: bash ./gradlew clean assembleStandardDebug
+      - name: Set COMMIT_COUNT
+        run: echo "::set-env name=COMMIT_COUNT::$(git rev-list --count HEAD)"
+      - name: Set CURRENT_SHA
+        run: echo "::set-env name=CURRENT_SHA::$(git rev-parse --short HEAD)"
+
+      - name: Create GitHub release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: r${{ env.COMMIT_COUNT }}
+          release_name: Tachiyomi Preview r${{ env.COMMIT_COUNT }}
+          body: 'Latest commit: https://github.com/inorichi/tachiyomi/commit/${{ env.CURRENT_SHA }}'
+          draft: false
+          prerelease: false
+      - name: Upload APK to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/standard/debug/app-standard-debug.apk
+          asset_name: tachiyomi-r${{ env.COMMIT_COUNT }}.apk
+          asset_content_type: application/vnd.android.package-archive

@@ -53,7 +53,7 @@ jobs:
         with:
           tag_name: r${{ env.COMMIT_COUNT }}
           release_name: Tachiyomi Preview r${{ env.COMMIT_COUNT }}
-          body: 'Latest commit: https://github.com/inorichi/tachiyomi/commit/${{ env.CURRENT_SHA }}'
+          body: 'r${{ env.COMMIT_COUNT }}\n\nLatest commit: https://github.com/inorichi/tachiyomi/commit/${{ env.CURRENT_SHA }}'
           draft: false
           prerelease: false
       - name: Upload APK to release

@@ -36,13 +36,16 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Get NDK
-        run: sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;21.0.6113669" &> /dev/null
 
       - name: Set up keystore
         run: mkdir -p ~/.android/ && echo "${{ secrets.DEBUG_KEYSTORE }}" | base64 --decode > ~/.android/debug.keystore
       - name: Build APK
-        run: bash ./gradlew clean assembleStandardDebug
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: assembleStandardDebug
+          wrapper-cache-enabled: true
+          dependencies-cache-enabled: true
+          configuration-cache-enabled: true
       - name: Set COMMIT_COUNT
         run: echo "::set-env name=COMMIT_COUNT::$(git rev-list --count HEAD)"
       - name: Set CURRENT_SHA

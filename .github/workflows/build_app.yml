@@ -46,10 +46,11 @@ jobs:
           wrapper-cache-enabled: true
           dependencies-cache-enabled: true
           configuration-cache-enabled: true
-      - name: Set COMMIT_COUNT
-        run: echo "::set-env name=COMMIT_COUNT::$(git rev-list --count HEAD)"
-      - name: Set CURRENT_SHA
-        run: echo "::set-env name=CURRENT_SHA::$(git rev-parse --short HEAD)"
+      - name: Set env variables
+        run: |
+          set -x
+          echo "COMMIT_COUNT=$(git rev-list --count HEAD)" >> $GITHUB_ENV
+          echo "CURRENT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Create GitHub release
         id: create_release

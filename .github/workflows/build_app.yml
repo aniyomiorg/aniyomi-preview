@@ -76,7 +76,8 @@ jobs:
           asset_name: tachiyomi-r${{ env.COMMIT_COUNT }}.apk
           asset_content_type: application/vnd.android.package-archive
           
-      - uses: dev-drprasad/delete-older-releases@v0.2.0
+      - name: Prune old releases
+        uses: dev-drprasad/delete-older-releases@v0.2.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

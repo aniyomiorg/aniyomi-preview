@@ -21,14 +21,14 @@ jobs:
       - name: Clone Repository (Latest)
         uses: actions/checkout@v2
         with:
-          repository: 'inorichi/tachiyomi'
+          repository: 'tachiyomiorg/tachiyomi'
           fetch-depth: 0
         if: github.event.inputs.git-ref == ''
       - name: Clone Repository (Custom Ref)
         uses: actions/checkout@v2
         if: github.event.inputs.git-ref != ''
         with:
-          repository: 'inorichi/tachiyomi'
+          repository: 'tachiyomiorg/tachiyomi'
           fetch-depth: 0
           ref: ${{ github.event.inputs.git-ref }}
 
@@ -63,7 +63,7 @@ jobs:
           body: >
             r${{ env.COMMIT_COUNT }}
 
-            Latest commit: https://github.com/inorichi/tachiyomi/commit/${{ env.CURRENT_SHA }}
+            Latest commit: https://github.com/tachiyomiorg/tachiyomi/commit/${{ env.CURRENT_SHA }}
           draft: ${{ github.event.inputs.dry-run != '' }}
           prerelease: false
       - name: Upload APK to release

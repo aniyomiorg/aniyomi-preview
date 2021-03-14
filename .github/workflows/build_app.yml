@@ -75,30 +75,29 @@ jobs:
           wrapper-cache-enabled: true
           dependencies-cache-enabled: true
           configuration-cache-enabled: true
+      - name: Clean up build artifacts
+        run: |
+          cp app/build/outputs/apk/standard/debug/app-standard-debug.apk tachiyomi-r${{ env.COMMIT_COUNT }}.apk
+          md5=`md5sum tachiyomi-r${{ env.COMMIT_COUNT }}.apk | awk '{ print $1 }'`
+          echo "APK_MD5=$md5" >> $GITHUB_ENV
 
-      - name: Create GitHub release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: r${{ env.COMMIT_COUNT }}
-          release_name: Tachiyomi Preview r${{ env.COMMIT_COUNT }}
+          name: Tachiyomi Preview r${{ env.COMMIT_COUNT }}
           body: |
             Commits: https://github.com/tachiyomiorg/tachiyomi/compare/${{ env.PREV_RELEASE_SHA }}...${{ env.CURRENT_SHA }}
 
             ${{ env.COMMIT_LOGS }}
+
+            MD5: ${{ env.APK_MD5 }}
+          files: |
+            tachiyomi-r${{ env.COMMIT_COUNT }}.apk
           draft: ${{ github.event.inputs.dry-run != '' }}
           prerelease: false
-      - name: Upload APK to release
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: app/build/outputs/apk/standard/debug/app-standard-debug.apk
-          asset_name: tachiyomi-r${{ env.COMMIT_COUNT }}.apk
-          asset_content_type: application/vnd.android.package-archive
 
       - name: Prune old releases
         uses: dev-drprasad/delete-older-releases@v0.2.0

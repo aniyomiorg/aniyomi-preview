@@ -2,8 +2,8 @@ name: Build job
 
 on:
   # Every week at 23:00 UTC
-  schedule:
-    - cron: '0 23 * * 6'
+  #schedule:
+  #  - cron: '0 23 * * 6'
   # Manual triggers
   workflow_dispatch:
     inputs:

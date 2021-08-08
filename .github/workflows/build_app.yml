@@ -54,7 +54,8 @@ jobs:
           echo "CURRENT_SHA=$current_sha" >> $GITHUB_ENV
           prev_commit_count=$(echo "${{ steps.last_release.outputs.tag_name }}" | sed -e "s/^r//")
           commit_count_diff=$(expr $commit_count - $prev_commit_count)
-          prev_release_sha=$(git rev-parse --short HEAD~$commit_count_diff)
+          commit_count_diff_one_less=$(expr $commit_count_diff - 1)
+          prev_release_sha=$(git log -n $commit_count_diff --skip $commit_count_diff_one_less --max-count 1 --pretty=format:"%h")
           echo "PREV_RELEASE_SHA=$prev_release_sha" >> $GITHUB_ENV
           echo "COMMIT_LOGS<<{delimiter}
           $(curl -H "Accept: application/vnd.github.v3+json" \

@@ -56,8 +56,8 @@ jobs:
 
           prev_commit_count=$(echo "${{ steps.last_release.outputs.tag_name }}" | sed -e "s/^r//")
           commit_count_diff=$(expr $commit_count - $prev_commit_count)
-          commit_count_diff_one_less=$(expr $commit_count_diff - 1)
-          prev_release_sha=$(git log -n $commit_count_diff --skip $commit_count_diff_one_less --max-count 1 --pretty=format:"%h")
+          commit_count_diff_one_more=$(expr $commit_count_diff + 1)
+          prev_release_sha=$(git log -n $commit_count_diff_one_more --skip $commit_count_diff --max-count 1 --pretty=format:"%h")
           echo "PREV_RELEASE_SHA=$prev_release_sha" >> $GITHUB_ENV
 
           echo "COMMIT_LOGS<<{delimiter}

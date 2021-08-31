@@ -45,31 +45,35 @@ jobs:
           exclude_types: "draft|prerelease"
           view_top: 1
 
-      - name: Prepare build metadata
+      - name: Prepare build
         run: |
           set -e
+
           commit_count=$(git rev-list --count HEAD)
           echo "COMMIT_COUNT=$commit_count" >> $GITHUB_ENV
           current_sha=$(git rev-parse --short HEAD)
           echo "CURRENT_SHA=$current_sha" >> $GITHUB_ENV
+
           prev_commit_count=$(echo "${{ steps.last_release.outputs.tag_name }}" | sed -e "s/^r//")
           commit_count_diff=$(expr $commit_count - $prev_commit_count)
           commit_count_diff_one_less=$(expr $commit_count_diff - 1)
           prev_release_sha=$(git log -n $commit_count_diff --skip $commit_count_diff_one_less --max-count 1 --pretty=format:"%h")
           echo "PREV_RELEASE_SHA=$prev_release_sha" >> $GITHUB_ENV
+
           echo "COMMIT_LOGS<<{delimiter}
           $(curl -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/jmir1/aniyomi/compare/$prev_release_sha...$current_sha" \
             | jq '[.commits[]|{message:(.commit.message | split("\n")), username:.author.login}]' \
             | jq -r '.[]|"- \(.message | first) (@\(.username))"')
           {delimiter}" >> $GITHUB_ENV
-      - name: Set up keystore
-        run: mkdir -p ~/.android/ && echo "${{ secrets.DEBUG_KEYSTORE }}" | base64 --decode > ~/.android/debug.keystore
+
+          mkdir -p ~/.android/ && echo "${{ secrets.DEBUG_KEYSTORE }}" | base64 --decode > ~/.android/debug.keystore
+
       - name: Build APK
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: assembleStandardDebug
-          wrapper-cache-enabled: true
+          distributions-cache-enabled: true
           dependencies-cache-enabled: true
           configuration-cache-enabled: true
 
@@ -77,31 +81,39 @@ jobs:
         run: |
           set -e
           cp app/build/outputs/apk/standard/debug/app-standard-universal-debug.apk aniyomi-r${{ env.COMMIT_COUNT }}.apk
-          md5=`md5sum aniyomi-r${{ env.COMMIT_COUNT }}.apk | awk '{ print $1 }'`
-          echo "APK_UNIVERSAL_MD5=$md5" >> $GITHUB_ENV
+          sha=`sha256sum aniyomi-r${{ env.COMMIT_COUNT }}.apk | awk '{ print $1 }'`
+          echo "APK_UNIVERSAL_SHA=$sha" >> $GITHUB_ENV
           cp app/build/outputs/apk/standard/debug/app-standard-arm64-v8a-debug.apk aniyomi-arm64-v8a-r${{ env.COMMIT_COUNT }}.apk
-          md5=`md5sum aniyomi-arm64-v8a-r${{ env.COMMIT_COUNT }}.apk | awk '{ print $1 }'`
-          echo "APK_ARM64_V8A_MD5=$md5" >> $GITHUB_ENV
+          sha=`sha256sum aniyomi-arm64-v8a-r${{ env.COMMIT_COUNT }}.apk | awk '{ print $1 }'`
+          echo "APK_ARM64_V8A_SHA=$sha" >> $GITHUB_ENV
           cp app/build/outputs/apk/standard/debug/app-standard-armeabi-v7a-debug.apk aniyomi-armeabi-v7a-r${{ env.COMMIT_COUNT }}.apk
-          md5=`md5sum aniyomi-armeabi-v7a-r${{ env.COMMIT_COUNT }}.apk | awk '{ print $1 }'`
-          echo "APK_ARMEABI_V7A_MD5=$md5" >> $GITHUB_ENV
+          sha=`sha256sum aniyomi-armeabi-v7a-r${{ env.COMMIT_COUNT }}.apk | awk '{ print $1 }'`
+          echo "APK_ARMEABI_V7A_SHA=$sha" >> $GITHUB_ENV
           cp app/build/outputs/apk/standard/debug/app-standard-x86-debug.apk aniyomi-x86-r${{ env.COMMIT_COUNT }}.apk
-          md5=`md5sum aniyomi-x86-r${{ env.COMMIT_COUNT }}.apk | awk '{ print $1 }'`
-          echo "APK_X86_MD5=$md5" >> $GITHUB_ENV
+          sha=`sha256sum aniyomi-x86-r${{ env.COMMIT_COUNT }}.apk | awk '{ print $1 }'`
+          echo "APK_X86_SHA=$sha" >> $GITHUB_ENV
       - name: Create release
-        uses: softprops/action-gh-release@59c3b4891632ff9a897f99a91d7bc557467a3a22
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: r${{ env.COMMIT_COUNT }}
           name: Aniyomi Preview r${{ env.COMMIT_COUNT }}
           body: |
-            Commits: https://github.com/jmir1/aniyomi/compare/${{ env.PREV_RELEASE_SHA }}...${{ env.CURRENT_SHA }}
-            ---
+            ### Commits
+            
+            https://github.com/jmir1/aniyomi/compare/${{ env.PREV_RELEASE_SHA }}...${{ env.CURRENT_SHA }}
+            
             ${{ env.COMMIT_LOGS }}
+
             ---
-            MD5 (universal): ${{ env.APK_UNIVERSAL_MD5 }}
-            MD5 (arm64-v8a): ${{ env.APK_ARM64_V8A_MD5 }}
-            MD5 (armeabi-v7a): ${{ env.APK_ARMEABI_V7A_MD5 }}
-            MD5 (x86): ${{ env.APK_X86_MD5 }}
+
+            ### Checksums
+            
+            | Variant | SHA-256 |
+            | ------- | ------- |
+            | Universal | ${{ env.APK_UNIVERSAL_SHA }}
+            | arm64-v8a | ${{ env.APK_ARM64_V8A_SHA }}
+            | armeabi-v7a | ${{ env.APK_ARMEABI_V7A_SHA }}
+            | x86 | ${{ env.APK_X86_SHA }} |
           files: |
             aniyomi-r${{ env.COMMIT_COUNT }}.apk
             aniyomi-arm64-v8a-r${{ env.COMMIT_COUNT }}.apk
@@ -119,3 +131,4 @@ jobs:
         with:
           keep_latest: 15
           delete_tags: true
+          name: Build job

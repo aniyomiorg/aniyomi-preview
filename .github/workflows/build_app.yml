@@ -72,7 +72,7 @@ jobs:
       - name: Build APK
         uses: gradle/gradle-command-action@v1
         with:
-          arguments: assembleStandardDebug
+          arguments: assembleStandardPreview
           distributions-cache-enabled: true
           dependencies-cache-enabled: true
           configuration-cache-enabled: true

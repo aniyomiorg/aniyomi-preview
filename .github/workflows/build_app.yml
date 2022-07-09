@@ -51,13 +51,13 @@ jobs:
 
           commit_count=$(git rev-list --count HEAD)
           echo "COMMIT_COUNT=$commit_count" >> $GITHUB_ENV
-          current_sha=$(git rev-parse --short HEAD)
+          current_sha=$(git rev-parse HEAD)
           echo "CURRENT_SHA=$current_sha" >> $GITHUB_ENV
 
           prev_commit_count=$(echo "${{ steps.last_release.outputs.tag_name }}" | sed -e "s/^r//")
           commit_count_diff=$(expr $commit_count - $prev_commit_count)
           commit_count_diff_one_more=$(expr $commit_count_diff + 1)
-          prev_release_sha=$(git log -n $commit_count_diff_one_more --skip $commit_count_diff --max-count 1 --pretty=format:"%h")
+          prev_release_sha=$(git log --topo-order -n $commit_count_diff_one_more --skip $commit_count_diff --max-count 1 --pretty=format:"%H")
           echo "PREV_RELEASE_SHA=$prev_release_sha" >> $GITHUB_ENV
 
           echo "COMMIT_LOGS<<{delimiter}

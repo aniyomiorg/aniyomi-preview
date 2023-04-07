@@ -16,66 +16,63 @@ on:
 
 jobs:
   build-app:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Clone Repository (Latest)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          repository: 'jmir1/aniyomi'
+          repository: jmir1/aniyomi
           fetch-depth: 0
+          ref: master
         if: github.event.inputs.git-ref == ''
+
       - name: Clone Repository (Custom Ref)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         if: github.event.inputs.git-ref != ''
         with:
-          repository: 'jmir1/aniyomi'
+          repository: jmir1/aniyomi
           fetch-depth: 0
           ref: ${{ github.event.inputs.git-ref }}
 
       - name: Set up JDK 11
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3
         with:
+          distribution: zulu
           java-version: 11
 
       - name: Get previous release
         id: last_release
-        uses: InsonusK/get-latest-release@v1.0.1
+        uses: jmir1/github-action-get-latest-release@v1
         with:
           myToken: ${{ github.token }}
-          exclude_types: "draft|prerelease"
-          view_top: 1
+          repository: ${{ github.repository }}
+          excludes: prerelease, draft
 
       - name: Prepare build
         run: |
           set -e
-
           commit_count=$(git rev-list --count HEAD)
           echo "COMMIT_COUNT=$commit_count" >> $GITHUB_ENV
           current_sha=$(git rev-parse HEAD)
           echo "CURRENT_SHA=$current_sha" >> $GITHUB_ENV
-
-          prev_commit_count=$(echo "${{ steps.last_release.outputs.tag_name }}" | sed -e "s/^r//")
+          prev_commit_count=$(echo "${{ steps.last_release.outputs.release }}" | sed -e "s/^r//")
           commit_count_diff=$(expr $commit_count - $prev_commit_count)
+          [ $commit_count_diff != 0 ] || exit 1
           commit_count_diff_one_more=$(expr $commit_count_diff + 1)
           prev_release_sha=$(git log --topo-order -n $commit_count_diff_one_more --skip $commit_count_diff --max-count 1 --pretty=format:"%H")
           echo "PREV_RELEASE_SHA=$prev_release_sha" >> $GITHUB_ENV
-
           echo "COMMIT_LOGS<<{delimiter}
           $(curl -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/jmir1/aniyomi/compare/$prev_release_sha...$current_sha" \
             | jq '[.commits[]|{message:(.commit.message | split("\n")), username:.author.login}]' \
             | jq -r '.[]|"- \(.message | first) (@\(.username))"')
           {delimiter}" >> $GITHUB_ENV
-
           mkdir -p ~/.android/ && echo "${{ secrets.DEBUG_KEYSTORE }}" | base64 --decode > ~/.android/debug.keystore
 
       - name: Build APK
-        uses: gradle/gradle-command-action@v1
+        uses: gradle/gradle-build-action@v2
         with:
           arguments: assembleStandardPreview
-          distributions-cache-enabled: true
-          dependencies-cache-enabled: true
-          configuration-cache-enabled: true
 
       - name: Clean up build artifacts
         run: |
@@ -92,8 +89,12 @@ jobs:
           cp app/build/outputs/apk/standard/preview/app-standard-x86-preview.apk aniyomi-x86-r${{ env.COMMIT_COUNT }}.apk
           sha=`sha256sum aniyomi-x86-r${{ env.COMMIT_COUNT }}.apk | awk '{ print $1 }'`
           echo "APK_X86_SHA=$sha" >> $GITHUB_ENV
+          cp app/build/outputs/apk/standard/preview/app-standard-x86_64-preview.apk aniyomi-x86_64-r${{ env.COMMIT_COUNT }}.apk
+          sha=`sha256sum aniyomi-x86_64-r${{ env.COMMIT_COUNT }}.apk | awk '{ print $1 }'`
+          echo "APK_X86_64_SHA=$sha" >> $GITHUB_ENV
+
       - name: Create release
-        uses: softprops/action-gh-release@v0.1.14
+        uses: softprops/action-gh-release@v0.1.15
         with:
           tag_name: r${{ env.COMMIT_COUNT }}
           name: Aniyomi Preview r${{ env.COMMIT_COUNT }}
@@ -103,9 +104,7 @@ jobs:
             https://github.com/jmir1/aniyomi/compare/${{ env.PREV_RELEASE_SHA }}...${{ env.CURRENT_SHA }}
             
             ${{ env.COMMIT_LOGS }}
-
             ---
-
             ### Checksums
             
             | Variant | SHA-256 |
@@ -113,19 +112,24 @@ jobs:
             | Universal | ${{ env.APK_UNIVERSAL_SHA }}
             | arm64-v8a | ${{ env.APK_ARM64_V8A_SHA }}
             | armeabi-v7a | ${{ env.APK_ARMEABI_V7A_SHA }}
-            | x86 | ${{ env.APK_X86_SHA }} |
+            | x86 | ${{ env.APK_X86_SHA }}
+            | x86_64 | ${{ env.APK_X86_64_SHA }} |
+            ### ⬇️ Which APK do I download? ⬇️
+            
+            If you have a fairly modern smartphone, you generally want to get `arm64-v8a`. Try `armeabi-v7a` for older devices. If you are unsure or require compatibility then the `universal` APK (the biggest in size) will work everywhere.
           files: |
             aniyomi-r${{ env.COMMIT_COUNT }}.apk
             aniyomi-arm64-v8a-r${{ env.COMMIT_COUNT }}.apk
             aniyomi-armeabi-v7a-r${{ env.COMMIT_COUNT }}.apk
             aniyomi-x86-r${{ env.COMMIT_COUNT }}.apk
+            aniyomi-x86_64-r${{ env.COMMIT_COUNT }}.apk
           draft: ${{ github.event.inputs.dry-run != '' }}
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prune old releases
-        uses: dev-drprasad/delete-older-releases@v0.2.0
+        uses: dev-drprasad/delete-older-releases@v0.2.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

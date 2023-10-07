@@ -1,5 +1,8 @@
 name: Build job
 
+permissions:
+  contents: write
+
 on:
   # Just manually for now
   #schedule:

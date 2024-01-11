@@ -90,6 +90,8 @@ jobs:
           signingKeyBase64: ${{ secrets.DEBUG_KEYSTORE }}
           alias: androiddebugkey
           keyStorePassword: android
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
 
       - name: Upload Proguard mapping file
         uses: actions/upload-artifact@v3

@@ -130,7 +130,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: r${{ env.COMMIT_COUNT }}
-          name: aniyomi Preview r${{ env.COMMIT_COUNT }}
+          name: Aniyomi Preview r${{ env.COMMIT_COUNT }}
           body: |
             ### Commits
 

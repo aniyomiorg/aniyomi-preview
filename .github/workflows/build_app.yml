@@ -97,7 +97,7 @@ jobs:
           BUILD_TOOLS_VERSION: "34.0.0"
 
       - name: Upload Proguard mapping file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mapping.txt
           path: app/build/outputs/mapping/standardPreview/mapping.txt

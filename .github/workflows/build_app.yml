@@ -71,16 +71,6 @@ jobs:
             | jq -r '.[]|"- \(.message | first) (@\(.username))"')
           {delimiter}" >> $GITHUB_ENV
 
-      - name: Set ACRA properties
-        env:
-          acraUri: ${{ secrets.ACRA_URI }}
-          acraLogin: ${{ secrets.ACRA_LOGIN }}
-          acraPassword: ${{ secrets.ACRA_PASSWORD }}
-        run: |
-          echo "ACRA_URI=$acraUri" >> acra.properties
-          echo "ACRA_LOGIN=$acraLogin" >> acra.properties
-          echo "ACRA_PASSWORD=$acraPassword" >> acra.properties
-
       - name: Build APK
         uses: gradle/gradle-command-action@v2
         with:

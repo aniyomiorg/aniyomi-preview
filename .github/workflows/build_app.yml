@@ -74,7 +74,7 @@ jobs:
       - name: Build APK
         uses: gradle/gradle-command-action@v2
         with:
-          arguments: assembleStandardPreview
+          arguments: assemblePreview -Penable-updater
 
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
